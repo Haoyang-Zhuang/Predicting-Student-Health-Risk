@@ -1,0 +1,124 @@
+{
+  "run_name": "smoke-hgb",
+  "rows_train": 10000,
+  "rows_test": 295753,
+  "quick": true,
+  "folds": 3,
+  "models": [
+    "hgb"
+  ],
+  "classes": [
+    "at-risk",
+    "fit",
+    "unhealthy"
+  ],
+  "raw_oof_balanced_accuracy": 0.9270175783797446,
+  "tuned_oof_balanced_accuracy": 0.9404905687756228,
+  "multipliers": {
+    "at-risk": 0.48679610097516257,
+    "fit": 3.547913019294061,
+    "unhealthy": 1.31427031962537
+  },
+  "classification_report": {
+    "at-risk": {
+      "precision": 0.9914029404435585,
+      "recall": 0.9266332828694538,
+      "f1-score": 0.9579245169445615,
+      "support": 8587.0
+    },
+    "fit": {
+      "precision": 0.6348837209302326,
+      "recall": 0.9462738301559792,
+      "f1-score": 0.7599164926931107,
+      "support": 577.0
+    },
+    "unhealthy": {
+      "precision": 0.7118491921005387,
+      "recall": 0.9485645933014354,
+      "f1-score": 0.8133333333333334,
+      "support": 836.0
+    },
+    "accuracy": 0.9296,
+    "macro avg": {
+      "precision": 0.7793786178247766,
+      "recall": 0.9404905687756228,
+      "f1-score": 0.8437247809903351,
+      "support": 10000.0
+    },
+    "weighted avg": {
+      "precision": 0.947461088116163,
+      "recall": 0.9296,
+      "f1-score": 0.9344116309953543,
+      "support": 10000.0
+    }
+  },
+  "features": [
+    "sleep_duration",
+    "heart_rate",
+    "bmi",
+    "calorie_expenditure",
+    "step_count",
+    "exercise_duration",
+    "water_intake",
+    "diet_type",
+    "stress_level",
+    "sleep_quality",
+    "physical_activity_level",
+    "smoking_alcohol",
+    "gender",
+    "sleep_duration_missing",
+    "heart_rate_missing",
+    "bmi_missing",
+    "calorie_expenditure_missing",
+    "step_count_missing",
+    "exercise_duration_missing",
+    "water_intake_missing",
+    "stress_activity",
+    "sleep_stress",
+    "sleep_duration_from_7",
+    "exercise_per_1k_steps",
+    "calories_per_step",
+    "water_per_bmi",
+    "heart_sleep_ratio",
+    "exercise_sleep_ratio"
+  ],
+  "categorical_features": [
+    "diet_type",
+    "stress_level",
+    "sleep_quality",
+    "physical_activity_level",
+    "smoking_alcohol",
+    "gender",
+    "stress_activity",
+    "sleep_stress"
+  ],
+  "model_metadata": [
+    {
+      "model": "hgb",
+      "fold_scores": [
+        0.9279165732947576,
+        0.929364804295064,
+        0.923787038953797
+      ],
+      "mean_fold_score": 0.9270228055145395,
+      "folds": [
+        {
+          "best_iteration": null,
+          "fold": 1,
+          "balanced_accuracy": 0.9279165732947576
+        },
+        {
+          "best_iteration": null,
+          "fold": 2,
+          "balanced_accuracy": 0.929364804295064
+        },
+        {
+          "best_iteration": null,
+          "fold": 3,
+          "balanced_accuracy": 0.923787038953797
+        }
+      ]
+    }
+  ],
+  "submission_path": "outputs\\smoke-hgb\\submission.csv"
+}

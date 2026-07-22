@@ -1,0 +1,151 @@
+{
+  "run_name": "smoke-cb-lgbm",
+  "rows_train": 30000,
+  "rows_test": 295753,
+  "quick": true,
+  "folds": 3,
+  "models": [
+    "catboost",
+    "lgbm"
+  ],
+  "classes": [
+    "at-risk",
+    "fit",
+    "unhealthy"
+  ],
+  "raw_oof_balanced_accuracy": 0.9442916041526876,
+  "tuned_oof_balanced_accuracy": 0.950489329080118,
+  "multipliers": {
+    "at-risk": 0.42851324712693284,
+    "fit": 0.9327523531982596,
+    "unhealthy": 0.6844397039184446
+  },
+  "classification_report": {
+    "at-risk": {
+      "precision": 0.9934770043761869,
+      "recall": 0.9341614906832298,
+      "f1-score": 0.9629066463927014,
+      "support": 25760.0
+    },
+    "fit": {
+      "precision": 0.6862339809838777,
+      "recall": 0.9595375722543352,
+      "f1-score": 0.8001928175463967,
+      "support": 1730.0
+    },
+    "unhealthy": {
+      "precision": 0.7156891932122655,
+      "recall": 0.9577689243027888,
+      "f1-score": 0.8192196285568241,
+      "support": 2510.0
+    },
+    "accuracy": 0.9376,
+    "macro avg": {
+      "precision": 0.7984667261907767,
+      "recall": 0.950489329080118,
+      "f1-score": 0.860773030831974,
+      "support": 30000.0
+    },
+    "weighted avg": {
+      "precision": 0.952517743159849,
+      "recall": 0.9376,
+      "f1-score": 0.9415016684369628,
+      "support": 30000.0
+    }
+  },
+  "features": [
+    "sleep_duration",
+    "heart_rate",
+    "bmi",
+    "calorie_expenditure",
+    "step_count",
+    "exercise_duration",
+    "water_intake",
+    "diet_type",
+    "stress_level",
+    "sleep_quality",
+    "physical_activity_level",
+    "smoking_alcohol",
+    "gender",
+    "sleep_duration_missing",
+    "heart_rate_missing",
+    "bmi_missing",
+    "calorie_expenditure_missing",
+    "step_count_missing",
+    "exercise_duration_missing",
+    "water_intake_missing",
+    "stress_activity",
+    "sleep_stress",
+    "sleep_duration_from_7",
+    "exercise_per_1k_steps",
+    "calories_per_step",
+    "water_per_bmi",
+    "heart_sleep_ratio",
+    "exercise_sleep_ratio"
+  ],
+  "categorical_features": [
+    "diet_type",
+    "stress_level",
+    "sleep_quality",
+    "physical_activity_level",
+    "smoking_alcohol",
+    "gender",
+    "stress_activity",
+    "sleep_stress"
+  ],
+  "model_metadata": [
+    {
+      "model": "catboost",
+      "fold_scores": [
+        0.952383459500146,
+        0.9476765678667295,
+        0.9474573498745628
+      ],
+      "mean_fold_score": 0.9491724590804794,
+      "folds": [
+        {
+          "best_iteration": 248,
+          "fold": 1,
+          "balanced_accuracy": 0.952383459500146
+        },
+        {
+          "best_iteration": 246,
+          "fold": 2,
+          "balanced_accuracy": 0.9476765678667295
+        },
+        {
+          "best_iteration": 249,
+          "fold": 3,
+          "balanced_accuracy": 0.9474573498745628
+        }
+      ]
+    },
+    {
+      "model": "lgbm",
+      "fold_scores": [
+        0.9224656403397417,
+        0.9205181542368811,
+        0.9154518566146935
+      ],
+      "mean_fold_score": 0.9194785503971055,
+      "folds": [
+        {
+          "best_iteration": 350,
+          "fold": 1,
+          "balanced_accuracy": 0.9224656403397417
+        },
+        {
+          "best_iteration": 298,
+          "fold": 2,
+          "balanced_accuracy": 0.9205181542368811
+        },
+        {
+          "best_iteration": 294,
+          "fold": 3,
+          "balanced_accuracy": 0.9154518566146935
+        }
+      ]
+    }
+  ],
+  "submission_path": "outputs\\smoke-cb-lgbm\\submission.csv"
+}
