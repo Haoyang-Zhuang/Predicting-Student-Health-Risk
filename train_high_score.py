@@ -20,6 +20,7 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from src.predict_health.artifacts import save_probability_artifacts
 from src.predict_health.features import add_features, feature_columns
 from src.predict_health.metrics import optimize_class_multipliers, predict_with_multipliers
 from src.predict_health.modeling import align_probabilities, average_probabilities, class_weight_map
@@ -38,8 +39,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--quick-rows", type=int, default=120000)
     parser.add_argument("--multiplier-rounds", type=int, default=800)
     parser.add_argument("--catboost-iterations", type=int, default=1200)
+    parser.add_argument("--catboost-task-type", choices=["CPU", "GPU"], default="GPU")
+    parser.add_argument("--catboost-devices", default="0", help="CatBoost GPU device string, for example 0 or 0:1.")
     parser.add_argument("--lgbm-estimators", type=int, default=1600)
+    parser.add_argument("--lgbm-device-type", choices=["cpu", "gpu"], default="cpu")
+    parser.add_argument("--lgbm-gpu-platform-id", type=int, default=None)
+    parser.add_argument("--lgbm-gpu-device-id", type=int, default=None)
     return parser.parse_args()
+
+
+def catboost_training_options(args: argparse.Namespace) -> dict[str, Any]:
+    options = {"task_type": args.catboost_task_type}
+    if args.catboost_task_type == "GPU":
+        options["devices"] = args.catboost_devices
+    return options
+
+
+def lgbm_training_options(args: argparse.Namespace) -> dict[str, Any]:
+    options = {"device_type": args.lgbm_device_type}
+    if args.lgbm_gpu_platform_id is not None:
+        options["gpu_platform_id"] = args.lgbm_gpu_platform_id
+    if args.lgbm_gpu_device_id is not None:
+        options["gpu_device_id"] = args.lgbm_gpu_device_id
+    return options
 
 
 def load_competition_data(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -51,7 +73,6 @@ def load_competition_data(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame, p
 
 def build_features(train: pd.DataFrame, test: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     y = train["health_condition"].copy()
-    train_ids = train["id"].copy()
     test_ids = test["id"].copy()
     train_x = add_features(train.drop(columns=["id", "health_condition"]))
     test_x = add_features(test.drop(columns=["id"]))
@@ -97,6 +118,7 @@ def train_catboost_fold(
     classes: np.ndarray,
     seed: int,
     iterations: int,
+    training_options: dict[str, Any],
 ) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     from catboost import CatBoostClassifier, Pool
 
@@ -117,6 +139,7 @@ def train_catboost_fold(
         od_type="Iter",
         od_wait=80,
         verbose=100,
+        **training_options,
     )
     train_pool = Pool(x_train, y_train, cat_features=categorical)
     valid_pool = Pool(x_valid, y_valid, cat_features=categorical)
@@ -124,7 +147,10 @@ def train_catboost_fold(
     model.fit(train_pool, eval_set=valid_pool, use_best_model=True)
     valid_proba = align_probabilities(model.predict_proba(valid_pool), model.classes_, classes)
     test_proba = align_probabilities(model.predict_proba(test_pool), model.classes_, classes)
-    return valid_proba, test_proba, {"best_iteration": int(model.get_best_iteration() or iterations)}
+    return valid_proba, test_proba, {
+        "best_iteration": int(model.get_best_iteration() or iterations),
+        "training_options": training_options,
+    }
 
 
 def train_lgbm_fold(
@@ -137,6 +163,7 @@ def train_lgbm_fold(
     classes: np.ndarray,
     seed: int,
     estimators: int,
+    training_options: dict[str, Any],
 ) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     import lightgbm as lgb
 
@@ -164,6 +191,7 @@ def train_lgbm_fold(
         random_state=seed,
         n_jobs=-1,
         verbosity=-1,
+        **training_options,
     )
     callbacks = [lgb.early_stopping(100), lgb.log_evaluation(100)]
     model.fit(
@@ -176,7 +204,10 @@ def train_lgbm_fold(
     )
     valid_proba = align_probabilities(model.predict_proba(x_valid), model.classes_, classes)
     test_proba = align_probabilities(model.predict_proba(x_test), model.classes_, classes)
-    return valid_proba, test_proba, {"best_iteration": int(getattr(model, "best_iteration_", estimators) or estimators)}
+    return valid_proba, test_proba, {
+        "best_iteration": int(getattr(model, "best_iteration_", estimators) or estimators),
+        "training_options": training_options,
+    }
 
 
 def train_hgb_fold(
@@ -226,7 +257,7 @@ def train_hgb_fold(
     model.fit(x_train, y_train)
     valid_proba = align_probabilities(model.predict_proba(x_valid), model[-1].classes_, classes)
     test_proba = align_probabilities(model.predict_proba(x_test), model[-1].classes_, classes)
-    return valid_proba, test_proba, {"best_iteration": None}
+    return valid_proba, test_proba, {"best_iteration": None, "training_options": {}}
 
 
 def train_model_family(
@@ -260,6 +291,7 @@ def train_model_family(
                 classes_encoded,
                 fold_seed,
                 250 if args.quick else args.catboost_iterations,
+                catboost_training_options(args),
             )
         elif name == "lgbm":
             valid_proba, test_proba, meta = train_lgbm_fold(
@@ -272,6 +304,7 @@ def train_model_family(
                 classes_encoded,
                 fold_seed,
                 400 if args.quick else args.lgbm_estimators,
+                lgbm_training_options(args),
             )
         elif name == "hgb":
             valid_proba, test_proba, meta = train_hgb_fold(
@@ -380,6 +413,7 @@ def main() -> None:
     submission_path = run_dir / "submission.csv"
     metadata_path = run_dir / "metadata.json"
     submission.to_csv(submission_path, index=False)
+    artifact_paths = save_probability_artifacts(run_dir, oof_proba, test_proba, y.to_numpy(), classes, test_ids.to_numpy())
 
     metadata = {
         "run_name": run_name,
@@ -396,6 +430,9 @@ def main() -> None:
         "features": x.columns.tolist(),
         "categorical_features": categorical,
         "model_metadata": model_metadata,
+        "catboost_options": catboost_training_options(args),
+        "lgbm_options": lgbm_training_options(args),
+        "artifacts": artifact_paths,
         "submission_path": str(submission_path),
     }
     metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
@@ -406,6 +443,7 @@ def main() -> None:
     print(f"multipliers={multipliers}", flush=True)
     print(f"submission={submission_path}", flush=True)
     print(f"metadata={metadata_path}", flush=True)
+    print(f"artifacts={artifact_paths}", flush=True)
 
 
 if __name__ == "__main__":
